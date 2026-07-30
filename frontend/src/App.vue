@@ -1,7 +1,23 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { ref } from 'vue';
+import AuditLog from './components/AuditLog.vue';
+import UserManagement from './components/UserManagement.vue';
+
+const reloadToken = ref(0);
+
+function onChanged() {
+  reloadToken.value += 1;
+}
 </script>
 
 <template>
-  <HelloWorld />
+  <main class="page">
+    <header class="page-header">
+      <h1>Access Provisioning & Audit Portal</h1>
+      <p>Manage user roles and review access-change history.</p>
+    </header>
+
+    <UserManagement @changed="onChanged" />
+    <AuditLog :reload-token="reloadToken" />
+  </main>
 </template>
