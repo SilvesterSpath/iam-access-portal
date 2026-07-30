@@ -1,5 +1,8 @@
-import { DEMO_ACTOR_EMAIL } from './constants.js';
+import { createApp } from './app.js';
 
-console.log(
-  `Access Provisioning API scaffold ready (demo actor: ${DEMO_ACTOR_EMAIL}). API routes come in Step 2.`,
-);
+const port = Number(process.env.PORT ?? 3000);
+const app = createApp();
+
+app.listen(port, () => {
+  console.log(`Access Provisioning API listening on http://localhost:${port}`);
+});
