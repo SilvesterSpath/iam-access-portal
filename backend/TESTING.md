@@ -2,11 +2,13 @@
 
 ## Prerequisites
 
-1. Postgres running (e.g. Docker container `access-portal-db` on port `5432`)
+1. Postgres running (e.g. `docker compose up db -d`, or any Postgres on port `5432`)
 2. A dedicated test database:
 
 ```powershell
-docker exec access-portal-db psql -U postgres -c "CREATE DATABASE access_portal_test;"
+docker compose exec db psql -U postgres -c "CREATE DATABASE access_portal_test;"
+# or, if using a standalone container named access-portal-db:
+# docker exec access-portal-db psql -U postgres -c "CREATE DATABASE access_portal_test;"
 ```
 
 3. Apply migrations to the test DB:
