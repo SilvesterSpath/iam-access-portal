@@ -10,6 +10,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prisma:generate": "node --experimental-require-module ./node_modules/prisma/build/index.js generate",
     "prisma:migrate": "node --experimental-require-module ./node_modules/prisma/build/index.js migrate deploy",
     "prisma:seed": "node --experimental-require-module ./node_modules/prisma/build/index.js db seed"
@@ -25,8 +27,11 @@
     "@types/express": "^5.0.3",
     "@types/node": "^22.18.0",
     "@types/pg": "^8.15.5",
+    "@types/supertest": "^7.2.1",
     "prisma": "^7.9.1",
+    "supertest": "^7.2.2",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.10"
   }
 }
