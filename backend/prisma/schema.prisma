@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String
+  createdAt DateTime   @default(now()) @map("created_at")
+  roles     UserRole[]
+  auditLogs AuditLog[] @relation("TargetUser")
+
+  @@map("users")
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorEmail   String   @map("actor_email")
+  targetUserId String   @map("target_user_id")
+  action       String
+  details      Json
+  createdAt    DateTime @default(now()) @map("created_at")
+  targetUser   User     @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}

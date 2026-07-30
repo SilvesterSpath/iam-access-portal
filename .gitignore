@@ -1,3 +1,31 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+backend/dist/
+frontend/dist/
+backend/src/generated/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs / coverage / caches
+logs/
+*.log
+npm-debug.log*
+coverage/
+.vite/
+.turbo/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Local planning / tooling (not part of submission)
 *.txt
 .*/
-context
+context/
