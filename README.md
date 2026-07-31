@@ -20,7 +20,7 @@ Then open:
 - **Backend API:** http://localhost:3000
 - **Health check:** http://localhost:3000/health
 
-On first start the backend waits for Postgres, runs migrations, seeds demo roles/users, then serves the API. If the UI loads before the API is ready, refresh once you see `Access Provisioning API listening` in the logs.
+On first start the backend waits for Postgres, runs migrations, seeds demo roles/users, then serves the API. The frontend container waits until the backend health check (`GET /health`) passes, so the UI should not appear before the API is ready.
 
 ### Troubleshooting
 
