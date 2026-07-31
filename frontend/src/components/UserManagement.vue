@@ -11,6 +11,7 @@ const users = ref<User[]>([]);
 const roles = ref<Role[]>([]);
 const loading = ref(false);
 const error = ref('');
+const success = ref('');
 const savingUserId = ref<string | null>(null);
 const creating = ref(false);
 
@@ -26,6 +27,7 @@ const newUser = reactive({
 async function load() {
   loading.value = true;
   error.value = '';
+  success.value = '';
   try {
     const [nextUsers, nextRoles] = await Promise.all([getUsers(), getRoles()]);
     users.value = nextUsers;
@@ -70,6 +72,7 @@ function toggleNewUserRole(roleId: string, checked: boolean) {
 async function saveRoles(user: User) {
   savingUserId.value = user.id;
   error.value = '';
+  success.value = '';
   try {
     const reason = (draftReasons[user.id] ?? '').trim();
     const updated = await updateUserRoles(user.id, {
@@ -81,6 +84,7 @@ async function saveRoles(user: User) {
     );
     draftRoles[user.id] = updated.roles.map((role) => role.id);
     draftReasons[user.id] = '';
+    success.value = `Saved roles for ${updated.name}.`;
     emit('changed');
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to save roles';
@@ -92,6 +96,7 @@ async function saveRoles(user: User) {
 async function submitNewUser() {
   creating.value = true;
   error.value = '';
+  success.value = '';
   try {
     await createUser({
       name: newUser.name.trim(),
@@ -102,6 +107,7 @@ async function submitNewUser() {
     newUser.email = '';
     newUser.roleIds = [];
     await load();
+    success.value = 'User created.';
     emit('changed');
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to create user';
@@ -124,6 +130,7 @@ onMounted(() => {
 
     <p v-if="loading" class="status">Loading users…</p>
     <p v-if="error" class="error">{{ error }}</p>
+    <p v-if="success" class="success">{{ success }}</p>
 
     <form class="add-user" @submit.prevent="submitNewUser">
       <h3>Add user</h3>

@@ -63,9 +63,14 @@ watch(
 </script>
 
 <template>
-  <section class="panel">
+  <section class="panel audit-panel">
     <div class="panel-header">
-      <h2>Audit Log</h2>
+      <div>
+        <h2>Audit Log</h2>
+        <p class="panel-subtitle">
+          Access-change history for role updates and user creation.
+        </p>
+      </div>
       <button type="button" :disabled="loading" @click="load">Refresh</button>
     </div>
 

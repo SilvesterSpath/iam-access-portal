@@ -14,6 +14,8 @@ From the repository root:
 docker compose up --build
 ```
 
+Equivalent to the brief’s `docker-compose up` (Compose v2 uses `docker compose`). Use `--build` on first run or after code changes.
+
 Then open:
 
 - **Frontend:** http://localhost:5173
