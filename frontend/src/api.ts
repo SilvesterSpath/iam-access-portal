@@ -52,9 +52,12 @@ export function createUser(input: {
   });
 }
 
-export function updateUserRoles(userId: string, roleIds: string[]) {
+export function updateUserRoles(
+  userId: string,
+  input: { roleIds: string[]; reason?: string },
+) {
   return request<User>(`/api/users/${userId}/roles`, {
     method: 'PUT',
-    body: JSON.stringify({ roleIds }),
+    body: JSON.stringify(input),
   });
 }

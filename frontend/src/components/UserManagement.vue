@@ -15,6 +15,7 @@ const savingUserId = ref<string | null>(null);
 const creating = ref(false);
 
 const draftRoles = reactive<Record<string, string[]>>({});
+const draftReasons = reactive<Record<string, string>>({});
 
 const newUser = reactive({
   name: '',
@@ -31,6 +32,9 @@ async function load() {
     roles.value = nextRoles;
     for (const user of nextUsers) {
       draftRoles[user.id] = user.roles.map((role) => role.id);
+      if (draftReasons[user.id] === undefined) {
+        draftReasons[user.id] = '';
+      }
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load users';
@@ -67,11 +71,16 @@ async function saveRoles(user: User) {
   savingUserId.value = user.id;
   error.value = '';
   try {
-    const updated = await updateUserRoles(user.id, draftRoles[user.id] ?? []);
+    const reason = (draftReasons[user.id] ?? '').trim();
+    const updated = await updateUserRoles(user.id, {
+      roleIds: draftRoles[user.id] ?? [],
+      ...(reason ? { reason } : {}),
+    });
     users.value = users.value.map((item) =>
       item.id === user.id ? updated : item,
     );
     draftRoles[user.id] = updated.roles.map((role) => role.id);
+    draftReasons[user.id] = '';
     emit('changed');
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to save roles';
@@ -182,6 +191,14 @@ onMounted(() => {
                   {{ role.name }}
                 </label>
               </div>
+              <label class="reason-field">
+                Reason (optional)
+                <input
+                  v-model="draftReasons[user.id]"
+                  type="text"
+                  placeholder="Why are roles changing?"
+                />
+              </label>
             </td>
             <td>
               <button

@@ -114,7 +114,7 @@ cd backend
 npm test
 ```
 
-The suite covers role replace-set + audit, invalid role rollback, duplicate roleId normalization, and user-creation audit.
+The suite covers role replace-set + audit (including added/removed role names and optional reason), no-op updates that skip audit writes, invalid role rollback, duplicate roleId normalization, and user-creation audit.
 
 ---
 
@@ -124,11 +124,11 @@ The suite covers role replace-set + audit, invalid role rollback, duplicate role
 |--------|------|-------------|
 | `GET` | `/api/users` | List users with assigned roles |
 | `POST` | `/api/users` | Create user (`name`, `email`, optional `roleIds`); writes `USER_CREATED` audit in the same transaction |
-| `PUT` | `/api/users/:id/roles` | Replace the user’s full role set (`{ "roleIds": string[] }`); writes `ROLES_UPDATED` audit in the same transaction |
+| `PUT` | `/api/users/:id/roles` | Replace the user’s full role set (`{ "roleIds": string[], "reason"?: string }`); writes `ROLES_UPDATED` audit in the same transaction when the normalized role set changes |
 | `GET` | `/api/roles` | List roles |
 | `GET` | `/api/audit-logs` | Chronological audit history (newest first) |
 
-Role IDs are deduplicated before validation and persistence. Unknown role IDs return `400` with no role or audit changes.
+Role IDs are deduplicated before validation and persistence. If the normalized role set matches the user’s current roles, the API returns the current user without rewriting assignments or appending audit. Unknown role IDs or a non-string `reason` return `400` with no role or audit changes. Lookup indexes exist on `user_roles(user_id, role_id)` and `audit_logs(target_user_id, created_at, actor_email)` for the common join/filter paths.
 
 ---
 
@@ -139,3 +139,16 @@ Because of the 6-hour timebox, I focused on a reliable vertical slice: normalize
 Authentication is out of scope for the prototype, so audit entries use a fixed demo operator, `ops@example.com`, as the actor. The schema keeps actor information explicit so it could later be connected to authenticated staff users.
 
 The senior signal for this slice is **transactional role updates**: replacing a user’s roles and writing the audit log happen in one Prisma transaction, with replace-set semantics and normalized `roleIds`.
+
+### Future production hardening
+
+I added indexing, richer audit details, reason capture, and no-op handling because they improve correctness and operational usability without expanding the prototype into a full authentication platform.
+
+With more time / for production I would add:
+
+- real operator authentication (`actor_id` instead of the demo actor email)
+- API authorization for the portal itself
+- audit filtering and pagination (indexes are already in place for common filters)
+- a richer permission model beyond flat roles
+- optimistic locking for concurrent role edits
+- OpenAPI documentation and CI

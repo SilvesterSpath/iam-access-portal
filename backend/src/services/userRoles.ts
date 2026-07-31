@@ -12,6 +12,29 @@ const userWithRolesInclude = {
   },
 } as const;
 
+function roleIdSetsEqual(a: string[], b: string[]) {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  const sortedA = [...a].sort();
+  const sortedB = [...b].sort();
+  return sortedA.every((id, index) => id === sortedB[index]);
+}
+
+function parseOptionalReason(reason: unknown): string | undefined {
+  if (reason === undefined || reason === null) {
+    return undefined;
+  }
+
+  if (typeof reason !== 'string') {
+    throw new BadRequestError('reason must be a string');
+  }
+
+  const trimmed = reason.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 async function assertRolesExist(roleIds: string[]) {
   if (roleIds.length === 0) {
     return [] as { id: string; name: string }[];
@@ -105,17 +128,22 @@ export async function createUser(input: {
   }
 }
 
-export async function updateUserRoles(userId: string, roleIds: unknown) {
-  if (roleIds === undefined || roleIds === null) {
+export async function updateUserRoles(
+  userId: string,
+  input: { roleIds: unknown; reason?: unknown },
+) {
+  if (input.roleIds === undefined || input.roleIds === null) {
     throw new BadRequestError('roleIds is required');
   }
 
   let normalizedRoleIds: string[];
   try {
-    normalizedRoleIds = normalizeRoleIds(roleIds);
+    normalizedRoleIds = normalizeRoleIds(input.roleIds);
   } catch {
     throw new BadRequestError('roleIds must be an array of strings');
   }
+
+  const reason = parseOptionalReason(input.reason);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -130,6 +158,23 @@ export async function updateUserRoles(userId: string, roleIds: unknown) {
 
   const beforeRoleIds = user.roles.map((assignment) => assignment.roleId);
   const beforeRoleNames = user.roles.map((assignment) => assignment.role.name);
+
+  if (roleIdSetsEqual(beforeRoleIds, normalizedRoleIds)) {
+    return mapUser(user);
+  }
+
+  const roleNameById = new Map(roles.map((role) => [role.id, role.name]));
+  const afterRoleNames = normalizedRoleIds.map(
+    (roleId) => roleNameById.get(roleId) as string,
+  );
+  const beforeNameSet = new Set(beforeRoleNames);
+  const afterNameSet = new Set(afterRoleNames);
+  const addedRoleNames = afterRoleNames.filter(
+    (name) => !beforeNameSet.has(name),
+  );
+  const removedRoleNames = beforeRoleNames.filter(
+    (name) => !afterNameSet.has(name),
+  );
 
   const updated = await prisma.$transaction(async (tx) => {
     await tx.userRole.deleteMany({ where: { userId } });
@@ -149,7 +194,10 @@ export async function updateUserRoles(userId: string, roleIds: unknown) {
           beforeRoleIds,
           afterRoleIds: normalizedRoleIds,
           beforeRoleNames,
-          afterRoleNames: roles.map((role) => role.name),
+          afterRoleNames,
+          addedRoleNames,
+          removedRoleNames,
+          ...(reason ? { reason } : {}),
         },
       },
     });

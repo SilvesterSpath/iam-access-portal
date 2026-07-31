@@ -30,6 +30,12 @@ async function seedRoles() {
   return { admin, support, viewer };
 }
 
+async function countRolesUpdated(targetUserId: string) {
+  return prisma.auditLog.count({
+    where: { targetUserId, action: 'ROLES_UPDATED' },
+  });
+}
+
 describe('user roles API', () => {
   beforeEach(async () => {
     await resetDatabase();
@@ -71,11 +77,15 @@ describe('user roles API', () => {
       afterRoleIds: string[];
       beforeRoleNames: string[];
       afterRoleNames: string[];
+      addedRoleNames: string[];
+      removedRoleNames: string[];
     };
     expect(details.beforeRoleIds).toEqual([viewer.id]);
     expect(details.afterRoleIds).toEqual([support.id]);
     expect(details.beforeRoleNames).toEqual(['Viewer']);
     expect(details.afterRoleNames).toEqual(['Support']);
+    expect(details.addedRoleNames).toEqual(['Support']);
+    expect(details.removedRoleNames).toEqual(['Viewer']);
   });
 
   it('rejects invalid role IDs without changing roles or writing audit', async () => {
@@ -88,6 +98,8 @@ describe('user roles API', () => {
       },
     });
 
+    const beforeCount = await countRolesUpdated(user.id);
+
     await request(app)
       .put(`/api/users/${user.id}/roles`)
       .send({ roleIds: ['00000000-0000-0000-0000-000000000000'] })
@@ -99,10 +111,7 @@ describe('user roles API', () => {
     expect(assignments).toHaveLength(1);
     expect(assignments[0]?.roleId).toBe(viewer.id);
 
-    const audits = await prisma.auditLog.findMany({
-      where: { targetUserId: user.id, action: 'ROLES_UPDATED' },
-    });
-    expect(audits).toHaveLength(0);
+    expect(await countRolesUpdated(user.id)).toBe(beforeCount);
   });
 
   it('deduplicates roleIds in assignments and audit details', async () => {
@@ -134,6 +143,91 @@ describe('user roles API', () => {
 
     const details = audits[0]?.details as { afterRoleIds: string[] };
     expect(details.afterRoleIds).toEqual([viewer.id]);
+  });
+
+  it('skips writes and audit when the normalized role set is unchanged', async () => {
+    const { admin, viewer } = await seedRoles();
+    const user = await prisma.user.create({
+      data: {
+        name: 'Cara Viewer',
+        email: 'cara@example.com',
+        roles: {
+          create: [{ roleId: admin.id }, { roleId: viewer.id }],
+        },
+      },
+    });
+
+    const beforeCount = await countRolesUpdated(user.id);
+
+    const response = await request(app)
+      .put(`/api/users/${user.id}/roles`)
+      .send({ roleIds: [viewer.id, admin.id, viewer.id] })
+      .expect(200);
+
+    expect(response.body.roles).toHaveLength(2);
+    expect(response.body.roles.map((role: { id: string }) => role.id).sort()).toEqual(
+      [admin.id, viewer.id].sort(),
+    );
+
+    expect(await countRolesUpdated(user.id)).toBe(beforeCount);
+
+    const assignments = await prisma.userRole.findMany({
+      where: { userId: user.id },
+    });
+    expect(assignments).toHaveLength(2);
+  });
+
+  it('stores reason and role diffs on ROLES_UPDATED', async () => {
+    const { admin, viewer } = await seedRoles();
+    const user = await prisma.user.create({
+      data: {
+        name: 'Cara Viewer',
+        email: 'cara@example.com',
+        roles: { create: [{ roleId: viewer.id }] },
+      },
+    });
+
+    await request(app)
+      .put(`/api/users/${user.id}/roles`)
+      .send({
+        roleIds: [admin.id, viewer.id],
+        reason: '  Temporary elevation for incident response  ',
+      })
+      .expect(200);
+
+    const audits = await prisma.auditLog.findMany({
+      where: { targetUserId: user.id, action: 'ROLES_UPDATED' },
+    });
+    expect(audits).toHaveLength(1);
+
+    const details = audits[0]?.details as {
+      reason: string;
+      addedRoleNames: string[];
+      removedRoleNames: string[];
+    };
+    expect(details.reason).toBe('Temporary elevation for incident response');
+    expect(details.addedRoleNames).toEqual(['Admin']);
+    expect(details.removedRoleNames).toEqual([]);
+  });
+
+  it('rejects a non-string reason without changing roles or writing audit', async () => {
+    const { viewer } = await seedRoles();
+    const user = await prisma.user.create({
+      data: {
+        name: 'Cara Viewer',
+        email: 'cara@example.com',
+        roles: { create: [{ roleId: viewer.id }] },
+      },
+    });
+
+    const beforeCount = await countRolesUpdated(user.id);
+
+    await request(app)
+      .put(`/api/users/${user.id}/roles`)
+      .send({ roleIds: [viewer.id], reason: 42 })
+      .expect(400);
+
+    expect(await countRolesUpdated(user.id)).toBe(beforeCount);
   });
 
   it('creates a USER_CREATED audit when adding a user with roles', async () => {

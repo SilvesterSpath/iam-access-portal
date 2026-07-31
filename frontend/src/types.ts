@@ -17,6 +17,9 @@ export interface AuditDetails {
   afterRoleIds?: string[];
   beforeRoleNames?: string[];
   afterRoleNames?: string[];
+  addedRoleNames?: string[];
+  removedRoleNames?: string[];
+  reason?: string;
   roleIds?: string[];
   roleNames?: string[];
   email?: string;

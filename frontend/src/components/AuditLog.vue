@@ -16,7 +16,19 @@ function formatDetails(log: AuditLog) {
   if (log.action === 'ROLES_UPDATED') {
     const before = details.beforeRoleNames?.join(', ') || '—';
     const after = details.afterRoleNames?.join(', ') || '—';
-    return `${before} → ${after}`;
+    const parts = [`${before} → ${after}`];
+
+    if (details.addedRoleNames?.length) {
+      parts.push(`+${details.addedRoleNames.join(', ')}`);
+    }
+    if (details.removedRoleNames?.length) {
+      parts.push(`−${details.removedRoleNames.join(', ')}`);
+    }
+    if (details.reason) {
+      parts.push(`reason: ${details.reason}`);
+    }
+
+    return parts.join(' · ');
   }
   if (log.action === 'USER_CREATED') {
     const roles = details.roleNames?.join(', ') || '—';

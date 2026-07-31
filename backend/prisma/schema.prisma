@@ -35,6 +35,8 @@ model UserRole {
   role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
   @@map("user_roles")
 }
 
@@ -47,5 +49,8 @@ model AuditLog {
   createdAt    DateTime @default(now()) @map("created_at")
   targetUser   User     @relation("TargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
 
+  @@index([targetUserId])
+  @@index([createdAt])
+  @@index([actorEmail])
   @@map("audit_logs")
 }

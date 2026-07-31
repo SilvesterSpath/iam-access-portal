@@ -27,7 +27,10 @@ usersRouter.post('/', async (req, res, next) => {
 
 usersRouter.put('/:id/roles', async (req, res, next) => {
   try {
-    const user = await updateUserRoles(req.params.id, req.body?.roleIds);
+    const user = await updateUserRoles(req.params.id, {
+      roleIds: req.body?.roleIds,
+      reason: req.body?.reason,
+    });
     res.json(user);
   } catch (error) {
     next(error);
