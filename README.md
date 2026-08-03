@@ -140,7 +140,7 @@ Because of the 6-hour timebox, I focused on a reliable vertical slice: normalize
 
 Authentication is out of scope for the prototype, so audit entries use a fixed demo operator, `ops@example.com`, as the actor. The schema keeps actor information explicit so it could later be connected to authenticated staff users.
 
-The senior signal for this slice is **transactional role updates**: replacing a user’s roles and writing the audit log happen in one Prisma transaction, with replace-set semantics and normalized `roleIds`.
+Role updates and audit writes happen in one Prisma transaction, with replace-set semantics and normalized `roleIds`.
 
 ### Future production hardening
 
