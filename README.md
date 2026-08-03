@@ -136,21 +136,23 @@ Role IDs are deduplicated before validation and persistence. If the normalized r
 
 ## Architectural trade-offs
 
-Because of the 6-hour timebox, I focused on a reliable vertical slice: normalized access-control schema, role-assignment updates, audit logging, Dockerized local setup, and a small backend test suite around the most important behavior. I intentionally kept authentication, advanced authorization, pagination, advanced UI styling, and production-grade observability out of scope, but structured the schema and API so these could be added later.
+Because of the 6-hour timebox, I focused on a reliable vertical slice: a normalized access-control schema, role-assignment updates, audit logging, Dockerized local setup, and a focused backend test suite around the most important behavior.
 
-Authentication is out of scope for the prototype, so audit entries use a fixed demo operator, `ops@example.com`, as the actor. The schema keeps actor information explicit so it could later be connected to authenticated staff users.
+I intentionally kept authentication, API authorization for the portal itself, pagination, advanced UI styling, and production-grade observability out of scope. The schema and API are structured so these concerns could be added later without changing the core access-update flow.
 
-Role updates and audit writes happen in one Prisma transaction, with replace-set semantics and normalized `roleIds`.
+Authentication is out of scope for this prototype, so audit entries use a fixed demo operator, `ops@example.com`, as the actor. The schema keeps actor information explicit so it could later be connected to authenticated staff users.
+
+Role updates and audit writes are committed in one Prisma transaction, using replace-set semantics and normalized `roleIds`. This ensures the role change and its audit record either commit together or not at all.
 
 ### Future production hardening
 
 I added indexing, richer audit details, reason capture, and no-op handling because they improve correctness and operational usability without expanding the prototype into a full authentication platform.
 
-With more time / for production I would add:
+With more time, or for a production version, I would add:
 
-- real operator authentication (`actor_id` instead of the demo actor email)
+- real operator authentication, using `actor_id` instead of the demo actor email
 - API authorization for the portal itself
-- audit filtering and pagination (indexes are already in place for common filters)
+- audit filtering and pagination, with the existing indexes supporting common lookup paths
 - a richer permission model beyond flat roles
 - optimistic locking for concurrent role edits
-- OpenAPI documentation and CI
+- OpenAPI documentation and CI checks
